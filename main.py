@@ -29,21 +29,18 @@ menu_bar.add_cascade(label="Pomoc", menu=help_menu)
 
 root.config(menu=menu_bar)
 
-# Górny pasek z tytułem i przyciskiem ustawień
-header_frame = tb.Frame(root)
-header_frame.pack(fill="x", padx=10, pady=5)
+# Nagłówek aplikacji
+header_label = tb.Label(root, text="Tracker Wody", font=("Arial", 16, "bold"))
+header_label.pack(pady=10)
 
-header_label = tb.Label(header_frame, text="Tracker Wody", font=("Arial", 16, "bold"))
-header_label.pack(side="left")
-
-# Środkowa sekcja z animacją szklanki
+# Środkowa sekcja z animacją
 canvas_frame = tb.Frame(root)
 canvas_frame.pack(pady=10)
 
 canvas = tk.Canvas(canvas_frame, width=150, height=250, bg="white", highlightthickness=2, relief="ridge")
 canvas.pack()
 
-# Rysowanie konturu szklanki
+# Rysowanie konturu
 glass_outline = canvas.create_rectangle(40, 20, 110, 230, outline="black", width=2)
 
 # Tworzenie prostokąta jako poziom wody
@@ -57,40 +54,66 @@ intake_label.pack(pady=5)
 btn_frame = tb.Frame(root)
 btn_frame.pack(pady=10)
 
-btn_remove = tb.Button(btn_frame, text="-", command=lambda: remove_water(), bootstyle="danger-outline", width=5)
+btn_remove = tb.Button(btn_frame, text="-", command=lambda: remove_water(), width=5)
 btn_remove.grid(row=0, column=0, padx=10)
 
-btn_add = tb.Button(btn_frame, text="+", command=lambda: add_water(), bootstyle="success-outline", width=5)
+btn_add = tb.Button(btn_frame, text="+", command=lambda: add_water(), width=5)
 btn_add.grid(row=0, column=1, padx=10)
 
 # PANEL USTAWIEŃ (schowany domyślnie)
-settings_frame = tb.Frame(root, width=200, height=450, bootstyle="light")
+settings_frame = tb.Frame(root, width=200, height=450, style="dark")
 settings_frame.place(x=320, y=0)  # Początkowa pozycja poza ekranem
 
-tb.Label(settings_frame, text="Ustawienia", font=("Arial", 14, "bold")).pack(pady=10)
+tb.Label(settings_frame, text="Ustawienia", font=("Arial", 14, "bold"), background="#2C2F33").pack(pady=10)
 
-tb.Label(settings_frame, text="Cel (ml):").pack(pady=5)
-goal_entry = tb.Entry(settings_frame)
-goal_entry.pack()
-goal_entry.insert(0, str(data["goal"]))
+# Suwak celu (skok co 50)
+tb.Label(settings_frame, text="Cel (ml):", background="#2C2F33").pack(pady=5)
+goal_var = tk.IntVar(value=data["goal"])
+goal_label = tb.Label(settings_frame, text=f"Aktualny cel: {goal_var.get()} ml", background="#2C2F33")
+goal_label.pack()
 
+def update_goal(value):
+    """Zaokrągla wartość suwaka celu do wielokrotności 50."""
+    rounded = round(int(float(value)) / 50) * 50
+    goal_var.set(rounded)
+    goal_label.config(text=f"Aktualny cel: {rounded} ml")
+
+goal_slider = tb.Scale(settings_frame, from_=500, to=5000, variable=goal_var, orient="horizontal", length=180, command=update_goal)
+goal_slider.pack()
+
+# Suwak wielkości szklanki (skok co 25)
 tb.Label(settings_frame, text="Wielkość szklanki (ml):").pack(pady=5)
-glass_entry = tb.Entry(settings_frame)
-glass_entry.pack()
-glass_entry.insert(0, str(data["glass_size"]))
+glass_var = tk.IntVar(value=data["glass_size"])
+glass_label = tb.Label(settings_frame, text=f"Aktualna wielkość szklanki: {glass_var.get()} ml")
+glass_label.pack()
+
+def update_glass_size(value):
+    """Zaokrągla wartość suwaka rozmiaru szklanki do wielokrotności 25."""
+    rounded = round(int(float(value)) / 25) * 25
+    glass_var.set(rounded)
+    glass_label.config(text=f"Aktualna wielkość szklanki: {rounded} ml")
+
+glass_slider = tb.Scale(settings_frame, from_=100, to=1000, variable=glass_var, orient="horizontal", length=180, command=update_glass_size)
+glass_slider.pack()
+
+def update_labels(*args):
+    """Aktualizuje etykiety pokazujące aktualnie ustawione wartości."""
+    goal_label.config(text=f"Aktualny cel: {goal_var.get()} ml")
+    glass_label.config(text=f"Aktualna wielkość szklanki: {glass_var.get()} ml")
+
+# Aktualizacja etykiet przy zmianie wartości slidera
+goal_var.trace_add("write", update_labels)
+glass_var.trace_add("write", update_labels)
 
 def save_settings():
     """Zapisuje ustawienia i zamyka panel."""
-    try:
-        goal = int(goal_entry.get())
-        glass_size = int(glass_entry.get())
-        logic.update_settings(data, goal, glass_size)
-        refresh_ui()
-        toggle_settings()
-    except ValueError:
-        messagebox.showerror("Błąd", "Podaj poprawne wartości liczbowe.")
+    goal = goal_var.get()
+    glass_size = glass_var.get()
+    logic.update_settings(data, goal, glass_size)
+    refresh_ui()
+    toggle_settings()
 
-tb.Button(settings_frame, text="Zapisz", command=save_settings, bootstyle="primary").pack(pady=10)
+tb.Button(settings_frame, text="Zapisz", command=save_settings).pack(pady=10)
 
 def toggle_settings():
     """Wysuwa lub chowa panel ustawień."""
