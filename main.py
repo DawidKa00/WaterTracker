@@ -1,142 +1,133 @@
+import os
 import tkinter as tk
-from tkinter import ttk, messagebox
-import ttkbootstrap as tb
+from pathlib import Path
+from tkinter import Canvas, Button, PhotoImage, messagebox
+
 import logic
 
-# Wczytanie danych
-data = logic.load_data()
 
-# Tworzenie okna głównego
-root = tb.Window(themename="darkly")
-root.title("Tracker Wody")
-root.geometry("320x450")
-root.resizable(False, False)
+class WaterTrackerApp:
+    """Główna klasa aplikacji śledzącej spożycie wody, zarządza UI i interakcjami użytkownika."""
 
-# Menu aplikacji
-menu_bar = tk.Menu(root)
+    def __init__(self):
+        """Inicjalizuje aplikację, ładuje dane, tworzy okno i interfejs użytkownika."""
+        self.output_path = Path(__file__).parent
+        self.assets_path = self.output_path / "assets/"
 
-file_menu = tk.Menu(menu_bar, tearoff=0)
-file_menu.add_command(label="Zamknij", command=root.quit)
-menu_bar.add_cascade(label="Plik", menu=file_menu)
+        self.data = logic.load_data()
 
-options_menu = tk.Menu(menu_bar, tearoff=0)
-options_menu.add_command(label="Ustawienia", command=lambda: toggle_settings())
-menu_bar.add_cascade(label="Opcje", menu=options_menu)
+        self.window = tk.Tk()
+        self.window.geometry("372x475")
+        self.window.configure(bg="#555555")
+        self.window.title("Tracker Wody")
+        self.window.iconbitmap(os.path.join(self.assets_path, "droplet.ico"))
+        self.window.resizable(False, False)
 
-help_menu = tk.Menu(menu_bar, tearoff=0)
-help_menu.add_command(label="O aplikacji", command=lambda: messagebox.showinfo("O aplikacji", "Tracker Wody v1.0\nAutor: Dawid Kapciak"))
-menu_bar.add_cascade(label="Pomoc", menu=help_menu)
+        self.canvas = Canvas(
+            self.window, bg="#555555", height=525, width=372,
+            bd=0, highlightthickness=0, relief="ridge"
+        )
+        self.canvas.place(x=0, y=0)
 
-root.config(menu=menu_bar)
+        self.load_assets()
+        self.create_widgets()
+        self.update_ui()
 
-# Nagłówek aplikacji
-header_label = tb.Label(root, text="Tracker Wody", font=("Arial", 16, "bold"))
-header_label.pack(pady=10)
+        self.window.mainloop()
 
-# Środkowa sekcja z animacją
-canvas_frame = tb.Frame(root)
-canvas_frame.pack(pady=10)
+    def relative_to_assets(self, path: str) -> Path:
+        """Zwraca pełną ścieżkę do zasobów aplikacji."""
+        """Ładuje obrazy przycisków i wskaźników postępu."""
+        return self.assets_path / path
 
-canvas = tk.Canvas(canvas_frame, width=150, height=250, bg="white", highlightthickness=2, relief="ridge")
-canvas.pack()
+    def load_assets(self):
+        """Ładuje obrazy przycisków i wskaźników postępu."""
+        self.button_images = [
+            PhotoImage(file=self.relative_to_assets("button_1.png")),
+            PhotoImage(file=self.relative_to_assets("button_2.png")),
+            PhotoImage(file=self.relative_to_assets("button_3.png"))
+        ]
+        self.drop_images = [
+            PhotoImage(file=self.relative_to_assets(f"image_{i}.png")) for i in range(10)
+        ]
+        self.glass_image = PhotoImage(file=self.relative_to_assets("image_1.png"))
 
-# Rysowanie konturu
-glass_outline = canvas.create_rectangle(40, 20, 110, 230, outline="black", width=2)
+    def create_widgets(self):
+        """Tworzy elementy interfejsu użytkownika, w tym przyciski i etykiety."""
+        self.buttons = [
+            Button(image=self.button_images[0], borderwidth=0, highlightthickness=0,
+                   command=self.open_settings, relief="flat"),
+            Button(image=self.button_images[1], borderwidth=0, highlightthickness=0,
+                   command=self.add_water, relief="flat"),
+            Button(image=self.button_images[2], borderwidth=0, highlightthickness=0,
+                   command=self.remove_water, relief="flat")
+        ]
+        self.buttons[0].place(x=324, y=0, width=48, height=48)
+        self.buttons[1].place(x=251, y=340, width=66, height=66)
+        self.buttons[2].place(x=52, y=338, width=66, height=66)
 
-# Tworzenie prostokąta jako poziom wody
-water_fill = canvas.create_rectangle(41, 230, 109, 230, fill="blue", outline="blue")
+        self.intake_label = self.canvas.create_text(
+            186, 286, anchor="center", text="", fill="#FFFFFF", font=("RobotoRoman Medium", 14 * -1)
+        )
+        self.drop_image_id = self.canvas.create_image(184, 157, image=self.drop_images[0])
+        self.canvas.create_image(184, 157, image=self.glass_image)
 
-# Etykieta postępu
-intake_label = tb.Label(root, text="", font=("Arial", 12))
-intake_label.pack(pady=5)
+    def update_ui(self):
+        """Aktualizuje interfejs użytkownika na podstawie aktualnych danych."""
+        self.canvas.itemconfig(self.intake_label, text=f"{self.data['intake']}/{self.data['goal']}")
+        progress = min(9, max(0, int((self.data["intake"] / self.data["goal"]) * 9)))
 
-# Przyciski sterujące
-btn_frame = tb.Frame(root)
-btn_frame.pack(pady=10)
+        # Ustawienie nowego obrazu kropli
+        self.current_drop_image = self.drop_images[progress]
+        self.canvas.delete(self.drop_image_id)  # Usuwamy poprzedni obraz
 
-btn_remove = tb.Button(btn_frame, text="-", command=lambda: remove_water(), width=5)
-btn_remove.grid(row=0, column=0, padx=10)
+        # Tworzymy nowy obraz w tym samym miejscu
+        self.drop_image_id = self.canvas.create_image(184, 157, image=self.current_drop_image)
 
-btn_add = tb.Button(btn_frame, text="+", command=lambda: add_water(), width=5)
-btn_add.grid(row=0, column=1, padx=10)
+    def add_water(self):
+        """Dodaje wodę do dziennego spożycia i odświeża interfejs."""
+        logic.add_water(self.data)
+        self.update_ui()
 
-# PANEL USTAWIEŃ (schowany domyślnie)
-settings_frame = tb.Frame(root, width=200, height=450, style="dark")
-settings_frame.place(x=320, y=0)  # Początkowa pozycja poza ekranem
+    def remove_water(self):
+        """Usuwa wodę z dziennego spożycia i odświeża interfejs."""
+        logic.remove_water(self.data)
+        self.update_ui()
 
-tb.Label(settings_frame, text="Ustawienia", font=("Arial", 14, "bold"), background="#2C2F33").pack(pady=10)
+    def open_settings(self):
+        """Otwiera okno ustawień, umożliwiające zmianę celu i rozmiaru szklanki."""
+        settings_window = tk.Toplevel(self.window)
+        settings_window.title("Ustawienia")
+        settings_window.geometry("250x200")
+        settings_window.configure(bg="#444444")
 
-# Suwak celu (skok co 50)
-tb.Label(settings_frame, text="Cel (ml):", background="#2C2F33").pack(pady=5)
-goal_var = tk.IntVar(value=data["goal"])
-goal_label = tb.Label(settings_frame, text=f"Aktualny cel: {goal_var.get()} ml", background="#2C2F33")
-goal_label.pack()
+        tk.Label(settings_window, text="Cel (ml):", bg="#444444", fg="white").pack(pady=5)
+        goal_entry = tk.Entry(settings_window)
+        goal_entry.insert(0, str(self.data["goal"]))
+        goal_entry.pack(pady=5)
 
-def update_goal(value):
-    """Zaokrągla wartość suwaka celu do wielokrotności 50."""
-    rounded = round(int(float(value)) / 50) * 50
-    goal_var.set(rounded)
-    goal_label.config(text=f"Aktualny cel: {rounded} ml")
+        tk.Label(settings_window, text="Rozmiar szklanki (ml):", bg="#444444", fg="white").pack(pady=5)
+        glass_entry = tk.Entry(settings_window)
+        glass_entry.insert(0, str(self.data["glass_size"]))
+        glass_entry.pack(pady=5)
 
-goal_slider = tb.Scale(settings_frame, from_=500, to=5000, variable=goal_var, orient="horizontal", length=180, command=update_goal)
-goal_slider.pack()
+        def save_settings():
+            """Zapisuje nowe ustawienia celu i rozmiaru szklanki, jeśli są poprawne."""
+            try:
+                new_goal = int(goal_entry.get())
+                new_glass_size = int(glass_entry.get())
+                if new_goal <= 0 or new_glass_size <= 0:
+                    messagebox.showerror("Błąd", "Wartości muszą być większe niż 0!")
+                    return
+                logic.update_settings(self.data, new_goal, new_glass_size)
+                self.update_ui()
+                settings_window.destroy()
+            except ValueError:
+                messagebox.showerror("Błąd", "Podaj poprawne liczby!")
 
-# Suwak wielkości szklanki (skok co 25)
-tb.Label(settings_frame, text="Wielkość szklanki (ml):").pack(pady=5)
-glass_var = tk.IntVar(value=data["glass_size"])
-glass_label = tb.Label(settings_frame, text=f"Aktualna wielkość szklanki: {glass_var.get()} ml")
-glass_label.pack()
+        save_button = tk.Button(settings_window, text="Zapisz", command=save_settings, bg="#008CBA", fg="white")
+        save_button.pack(pady=10)
 
-def update_glass_size(value):
-    """Zaokrągla wartość suwaka rozmiaru szklanki do wielokrotności 25."""
-    rounded = round(int(float(value)) / 25) * 25
-    glass_var.set(rounded)
-    glass_label.config(text=f"Aktualna wielkość szklanki: {rounded} ml")
 
-glass_slider = tb.Scale(settings_frame, from_=100, to=1000, variable=glass_var, orient="horizontal", length=180, command=update_glass_size)
-glass_slider.pack()
-
-def update_labels(*args):
-    """Aktualizuje etykiety pokazujące aktualnie ustawione wartości."""
-    goal_label.config(text=f"Aktualny cel: {goal_var.get()} ml")
-    glass_label.config(text=f"Aktualna wielkość szklanki: {glass_var.get()} ml")
-
-# Aktualizacja etykiet przy zmianie wartości slidera
-goal_var.trace_add("write", update_labels)
-glass_var.trace_add("write", update_labels)
-
-def save_settings():
-    """Zapisuje ustawienia i zamyka panel."""
-    goal = goal_var.get()
-    glass_size = glass_var.get()
-    logic.update_settings(data, goal, glass_size)
-    refresh_ui()
-    toggle_settings()
-
-tb.Button(settings_frame, text="Zapisz", command=save_settings).pack(pady=10)
-
-def toggle_settings():
-    """Wysuwa lub chowa panel ustawień."""
-    if settings_frame.winfo_x() > 300:  # Jeśli jest poza ekranem
-        settings_frame.place(x=120, y=0)  # Wysuwa panel na ekran
-    else:
-        settings_frame.place(x=320, y=0)  # Chowa panel
-
-def refresh_ui():
-    """Aktualizuje UI, w tym animację napełniania szklanki."""
-    percentage = logic.update_progress(data) / 100
-    water_level = 230 - (percentage * 210)  # 210 to wysokość wypełnienia
-    canvas.coords(water_fill, 41, water_level, 109, 230)  # Aktualizacja poziomu wody
-    intake_label.config(text=f"{data['intake']} ml / {data['goal']} ml")
-
-def add_water():
-    logic.add_water(data)
-    refresh_ui()
-
-def remove_water():
-    logic.remove_water(data)
-    refresh_ui()
-
-# Inicjalizacja UI
-refresh_ui()
-root.mainloop()
+if __name__ == "__main__":
+    WaterTrackerApp()
