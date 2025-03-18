@@ -23,7 +23,7 @@ osiąganiu celu.
 
 ## Uruchomienie aplikacji
 
-1. Uruchom plik `main.py`: \
+1. Uruchom plik `main.py`: 
     ```bash
     python main.py
     ```
