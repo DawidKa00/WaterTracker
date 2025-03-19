@@ -32,6 +32,12 @@ class WaterTrackerApp:
         self.load_assets()
         self.create_widgets()
         self.update_ui()
+        self.window.bind("<KeyPress-q>", lambda event: self.remove_water())
+        self.window.bind("<KeyPress-a>", lambda event: self.remove_water())
+        self.window.bind("<KeyPress-z>", lambda event: self.remove_water())
+        self.window.bind("<KeyPress-e>", lambda event: self.add_water())
+        self.window.bind("<KeyPress-d>", lambda event: self.add_water())
+        self.window.bind("<KeyPress-x>", lambda event: self.add_water())
 
         self.window.mainloop()
 
@@ -50,7 +56,6 @@ class WaterTrackerApp:
         self.drop_images = [
             PhotoImage(file=self.relative_to_assets(f"image_{i}.png")) for i in range(10)
         ]
-        self.glass_image = PhotoImage(file=self.relative_to_assets("image_1.png"))
 
     def create_widgets(self):
         """Tworzy elementy interfejsu użytkownika, w tym przyciski i etykiety."""
@@ -70,7 +75,6 @@ class WaterTrackerApp:
             186, 286, anchor="center", text="", fill="#FFFFFF", font=("RobotoRoman Medium", 14 * -1)
         )
         self.drop_image_id = self.canvas.create_image(184, 157, image=self.drop_images[0])
-        self.canvas.create_image(184, 157, image=self.glass_image)
 
     def update_ui(self):
         """Aktualizuje interfejs użytkownika na podstawie aktualnych danych."""
