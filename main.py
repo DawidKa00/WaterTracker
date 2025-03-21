@@ -3,6 +3,9 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import Canvas, Button, PhotoImage, messagebox
 
+from matplotlib import pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 import logic
 
 
@@ -51,7 +54,8 @@ class WaterTrackerApp:
         self.button_images = [
             PhotoImage(file=self.relative_to_assets("button_1.png")),
             PhotoImage(file=self.relative_to_assets("button_2.png")),
-            PhotoImage(file=self.relative_to_assets("button_3.png"))
+            PhotoImage(file=self.relative_to_assets("button_3.png")),
+            PhotoImage(file=self.relative_to_assets("button_4.png"))
         ]
         self.drop_images = [
             PhotoImage(file=self.relative_to_assets(f"image_{i}.png")) for i in range(10)
@@ -65,11 +69,14 @@ class WaterTrackerApp:
             Button(image=self.button_images[1], borderwidth=0, highlightthickness=0,
                    command=self.add_water, relief="flat"),
             Button(image=self.button_images[2], borderwidth=0, highlightthickness=0,
-                   command=self.remove_water, relief="flat")
+                   command=self.remove_water, relief="flat"),
+            Button(image=self.button_images[3], borderwidth=0, highlightthickness=0,
+                   command=lambda: self.show_water_intake_chart(7), relief="flat")
         ]
         self.buttons[0].place(x=324, y=0, width=48, height=48)
         self.buttons[1].place(x=251, y=340, width=66, height=66)
         self.buttons[2].place(x=52, y=338, width=66, height=66)
+        self.buttons[3].place(x=0, y=0, width=48, height=48)
 
         self.intake_label = self.canvas.create_text(
             186, 286, anchor="center", text="", fill="#FFFFFF", font=("RobotoRoman Medium", 14 * -1)
@@ -97,6 +104,40 @@ class WaterTrackerApp:
         """Usuwa wodę z dziennego spożycia i odświeża interfejs."""
         logic.remove_water(self.data)
         self.update_ui()
+
+    def show_water_intake_chart(self, days=7):
+        """Tworzy okno z wykresem spożycia wody dla ostatnich dni."""
+        data = logic.load_data(days)
+
+        dates = [entry["date"] for entry in data]
+        intake = [entry["intake"] for entry in data]
+        goals = [entry["goal"] for entry in data]
+
+        chart_window = tk.Toplevel(self.window)
+        chart_window.title("Historia spożycia wody")
+        chart_window.geometry("800x400")
+        chart_window.configure(bg="#555555")
+
+        fig, ax = plt.subplots(figsize=(8, 4))
+
+        ax.bar(dates, intake, color='#007aff', label="Spożycie wody")
+        ax.plot(dates, goals, color='white', marker='o', linestyle='dashed', label="Cel")
+
+        ax.set_xlabel("Data")
+        ax.set_ylabel("Ilość wody (ml)")
+        ax.set_title(f"Spożycie wody - ostatnie {days} dni")
+        ax.set_ylim(bottom=min(intake) - 250)
+        ax.set_facecolor('#555555')
+        ax.legend()
+
+        ax.tick_params(axis='x', rotation=45)
+        fig.subplots_adjust(bottom=0.25)
+
+        canvas = FigureCanvasTkAgg(fig, master=chart_window)
+        canvas.draw()
+        canvas.get_tk_widget().pack()
+
+        canvas.get_tk_widget().configure(bg="#555555")
 
     def open_settings(self):
         """Otwiera okno ustawień, umożliwiające zmianę celu i rozmiaru szklanki."""

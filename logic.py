@@ -5,8 +5,8 @@ from datetime import datetime
 DATA_FILE = "water_data.json"
 
 
-def load_data():
-    """Wczytuje dane z pliku JSON i dodaje nowy dzień, jeśli potrzeba."""
+def load_data(days=None):
+    """Wczytuje dane z pliku JSON i zwraca określoną liczbę dni."""
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r") as file:
             try:
@@ -21,20 +21,22 @@ def load_data():
     today = datetime.today().strftime('%Y-%m-%d')
 
     if data and data[-1].get("date") == today:
-        return data[-1]
+        latest_entry = data[-1]
+    else:
+        last_entry = data[-1] if data else {}
+        latest_entry = {
+            "date": today,
+            "intake": 0,
+            "goal": last_entry.get("goal", 2000),
+            "glass_size": last_entry.get("glass_size", 250)
+        }
+        data.append(latest_entry)
+        save_data(data)
 
-    last_entry = data[-1] if data else {}
-    new_entry = {
-        "date": today,
-        "intake": 0,
-        "goal": last_entry.get("goal", 2000),
-        "glass_size": last_entry.get("glass_size", 250)
-    }
-
-    data.append(new_entry)
-    save_data(data)
-
-    return new_entry
+    # Jeśli podano `days`, zwracamy ostatnie X dni
+    if days:
+        return data[-days:]  # Pobierz ostatnie `days` dni
+    return latest_entry  # Zwróć dzisiejszy wpis
 
 
 def save_data(data):
