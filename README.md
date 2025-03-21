@@ -23,7 +23,7 @@ osiąganiu celu.
 
 ## Uruchomienie aplikacji
 
-1. Uruchom plik `main.py`: 
+1. Uruchom plik `main.py` lub `Water Tracker.exe`: 
     ```bash
     python main.py
     ```
