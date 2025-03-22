@@ -14,6 +14,7 @@ class WaterTrackerApp:
 
     def __init__(self):
         """Inicjalizuje aplikację, ładuje dane, tworzy okno i interfejs użytkownika."""
+        self.chart_window = None
         self.output_path = Path(__file__).parent
         self.assets_path = self.output_path / "assets/"
 
@@ -95,6 +96,11 @@ class WaterTrackerApp:
         # Tworzymy nowy obraz w tym samym miejscu
         self.drop_image_id = self.canvas.create_image(184, 157, image=self.current_drop_image)
 
+        if self.chart_window:
+            self.chart_window.destroy()
+            self.show_water_intake_chart()
+
+
     def add_water(self):
         """Dodaje wodę do dziennego spożycia i odświeża interfejs."""
         logic.add_water(self.data)
@@ -113,10 +119,10 @@ class WaterTrackerApp:
         intake = [entry["intake"] for entry in data]
         goals = [entry["goal"] for entry in data]
 
-        chart_window = tk.Toplevel(self.window)
-        chart_window.title("Historia spożycia wody")
-        chart_window.geometry("800x400")
-        chart_window.configure(bg="#555555")
+        self.chart_window = tk.Toplevel(self.window)
+        self.chart_window.title("Historia spożycia wody")
+        self.chart_window.geometry("800x400")
+        self.chart_window.configure(bg="#555555")
 
         fig, ax = plt.subplots(figsize=(8, 4))
 
@@ -133,7 +139,7 @@ class WaterTrackerApp:
         ax.tick_params(axis='x', rotation=45)
         fig.subplots_adjust(bottom=0.25)
 
-        canvas = FigureCanvasTkAgg(fig, master=chart_window)
+        canvas = FigureCanvasTkAgg(fig, master=self.chart_window)
         canvas.draw()
         canvas.get_tk_widget().pack()
 
