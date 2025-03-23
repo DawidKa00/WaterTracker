@@ -6,6 +6,7 @@ from tkinter import Canvas, Button, PhotoImage, messagebox
 
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from setuptools_scm import get_version
 
 import logic
 
@@ -92,11 +93,9 @@ class WaterTrackerApp:
         self.canvas.itemconfig(self.intake_label, text=f"{self.data['intake']}/{self.data['goal']}")
         progress = min(9, max(0, int((self.data["intake"] / self.data["goal"]) * 9)))
 
-        # Ustawienie nowego obrazu kropli
         self.current_drop_image = self.drop_images[progress]
         self.canvas.delete(self.drop_image_id)  # Usuwamy poprzedni obraz
 
-        # Tworzymy nowy obraz w tym samym miejscu
         self.drop_image_id = self.canvas.create_image(184, 157, image=self.current_drop_image)
 
         if self.chart_window:
@@ -127,7 +126,7 @@ class WaterTrackerApp:
         self.chart_window.geometry("800x400")
         self.chart_window.configure(bg="#555555")
 
-        self.chart_window.protocol("WM_DELETE_WINDOW", self.chart_window.destroy())
+        self.chart_window.protocol("WM_DELETE_WINDOW", self.chart_window.destroy)
 
         fig, ax = plt.subplots(figsize=(8, 4))
 
@@ -183,6 +182,10 @@ class WaterTrackerApp:
 
         save_button = tk.Button(settings_window, text="Zapisz", command=save_settings, bg="#008CBA", fg="white")
         save_button.pack(pady=10)
+
+        version_label = tk.Label(settings_window, text=f"Wersja: {get_version()}", bg="#444444",
+                                 fg="white")
+        version_label.pack(pady=5)
 
     def on_closing(self):
         self.window.destroy()

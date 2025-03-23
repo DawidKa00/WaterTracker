@@ -33,11 +33,9 @@ def load_data(days=None):
         data.append(latest_entry)
         save_data(data)
 
-    # Jeśli podano `days`, zwracamy ostatnie X dni
     if days:
-        return data[-days:]  # Pobierz ostatnie `days` dni
-    return latest_entry  # Zwróć dzisiejszy wpis
-
+        return data[-days:]
+    return latest_entry
 
 def save_data(data):
     """Zapisuje całą listę dni do pliku JSON."""
