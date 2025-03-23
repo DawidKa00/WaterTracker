@@ -120,6 +120,11 @@ class WaterTrackerApp:
         logic.remove_water(self.data)
         self.update_ui()
 
+    def destroy_window(self):
+        """Usuwa okno wykresu i resetuje związany z nim Canvas."""
+        self.chart_canvas.destroy()
+        self.chart_canvas = None
+
     def create_chart_window(self, days):
         """Tworzy nowe okno wykresu i inicjalizuje Canvas."""
         if not self.chart_canvas:
@@ -128,7 +133,7 @@ class WaterTrackerApp:
             self.chart_canvas.geometry("800x400")
             self.chart_canvas.configure(bg="#555555")
 
-            self.chart_canvas.protocol("WM_DELETE_WINDOW", self.chart_canvas.destroy)
+            self.chart_canvas.protocol("WM_DELETE_WINDOW", self.destroy_window)
 
             self.figure, self.ax = plt.subplots(figsize=(8, 4))
             self.figure.patch.set_facecolor('#555555')
