@@ -2,7 +2,7 @@ import os
 import sys
 import tkinter as tk
 from pathlib import Path
-from tkinter import Canvas, Button, PhotoImage, messagebox
+from tkinter import Button, PhotoImage, messagebox
 
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -31,15 +31,18 @@ class WaterTrackerApp:
 
         self.window.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-        self.canvas = Canvas(
+        self.tk_canvas = tk.Canvas(
             self.window, bg="#555555", height=525, width=372,
             bd=0, highlightthickness=0, relief="ridge"
         )
-        self.canvas.place(x=0, y=0)
+        self.tk_canvas.place(x=0, y=0)
+
+        self.chart_canvas = None
 
         self.load_assets()
         self.create_widgets()
         self.update_ui()
+
         self.window.bind("<KeyPress-q>", lambda event: self.remove_water())
         self.window.bind("<KeyPress-a>", lambda event: self.remove_water())
         self.window.bind("<KeyPress-z>", lambda event: self.remove_water())
@@ -76,33 +79,30 @@ class WaterTrackerApp:
             Button(image=self.button_images[2], borderwidth=0, highlightthickness=0,
                    command=self.remove_water, relief="flat"),
             Button(image=self.button_images[3], borderwidth=0, highlightthickness=0,
-                   command=lambda: self.show_water_intake_chart(7), relief="flat")
+                   command=lambda: self.create_chart_window(7), relief="flat")
         ]
         self.buttons[0].place(x=324, y=0, width=48, height=48)
         self.buttons[1].place(x=251, y=340, width=66, height=66)
         self.buttons[2].place(x=52, y=338, width=66, height=66)
         self.buttons[3].place(x=0, y=0, width=48, height=48)
 
-        self.intake_label = self.canvas.create_text(
+        self.intake_label = self.tk_canvas.create_text(
             186, 286, anchor="center", text="", fill="#FFFFFF", font=("RobotoRoman Medium", 14 * -1)
         )
-        self.drop_image_id = self.canvas.create_image(184, 157, image=self.drop_images[0])
+        self.drop_image_id = self.tk_canvas.create_image(184, 157, image=self.drop_images[0])
 
     def update_ui(self):
         """Aktualizuje interfejs użytkownika na podstawie aktualnych danych."""
-        self.canvas.itemconfig(self.intake_label, text=f"{self.data['intake']}/{self.data['goal']}")
+        self.tk_canvas.itemconfig(self.intake_label, text=f"{self.data['intake']}/{self.data['goal']}")
+
         progress = min(9, max(0, int((self.data["intake"] / self.data["goal"]) * 9)))
-
         self.current_drop_image = self.drop_images[progress]
-        self.canvas.delete(self.drop_image_id)  # Usuwamy poprzedni obraz
 
-        self.drop_image_id = self.canvas.create_image(184, 157, image=self.current_drop_image)
+        self.tk_canvas.delete(self.drop_image_id)
+        self.drop_image_id = self.tk_canvas.create_image(184, 157, image=self.current_drop_image)
 
-        if self.chart_window:
-            self.chart_window.destroy()
-            self.show_water_intake_chart()
-
-
+        if self.chart_canvas:
+            self.update_chart()
     def add_water(self):
         """Dodaje wodę do dziennego spożycia i odświeża interfejs."""
         logic.add_water(self.data)
@@ -113,41 +113,45 @@ class WaterTrackerApp:
         logic.remove_water(self.data)
         self.update_ui()
 
-    def show_water_intake_chart(self, days=7):
-        """Tworzy okno z wykresem spożycia wody dla ostatnich dni."""
+    def create_chart_window(self, days):
+        """Tworzy nowe okno wykresu i inicjalizuje Canvas."""
+        self.chart_canvas = tk.Toplevel(self.window)
+        self.chart_canvas.title("Historia spożycia wody")
+        self.chart_canvas.geometry("800x400")
+        self.chart_canvas.configure(bg="#555555")
+
+        self.chart_canvas.protocol("WM_DELETE_WINDOW", self.chart_canvas.destroy)
+
+        self.figure, self.ax = plt.subplots(figsize=(8, 4))
+        self.canvas = FigureCanvasTkAgg(self.figure, master=self.chart_canvas)
+        self.canvas.get_tk_widget().pack()
+
+        self.update_chart(days)
+
+    def update_chart(self, days=7):
+        """Aktualizuje wykres spożycia wody."""
         data = logic.load_data(days)
 
         dates = [entry["date"] for entry in data]
         intake = [entry["intake"] for entry in data]
         goals = [entry["goal"] for entry in data]
 
-        self.chart_window = tk.Toplevel(self.window)
-        self.chart_window.title("Historia spożycia wody")
-        self.chart_window.geometry("800x400")
-        self.chart_window.configure(bg="#555555")
+        self.ax.clear()
 
-        self.chart_window.protocol("WM_DELETE_WINDOW", self.chart_window.destroy)
+        self.ax.bar(dates, intake, color='#007aff', label="Spożycie wody")
+        self.ax.plot(dates, goals, color='white', marker='o', linestyle='dashed', label="Cel")
 
-        fig, ax = plt.subplots(figsize=(8, 4))
+        self.ax.set_xlabel("Data")
+        self.ax.set_ylabel("Ilość wody (ml)")
+        self.ax.set_title(f"Spożycie wody - ostatnie {days} dni")
+        self.ax.set_ylim(bottom=min(intake) - 250)
+        self.ax.set_facecolor('#555555')
+        self.ax.legend()
 
-        ax.bar(dates, intake, color='#007aff', label="Spożycie wody")
-        ax.plot(dates, goals, color='white', marker='o', linestyle='dashed', label="Cel")
+        self.ax.tick_params(axis='x', rotation=45)
+        self.figure.subplots_adjust(bottom=0.25)
 
-        ax.set_xlabel("Data")
-        ax.set_ylabel("Ilość wody (ml)")
-        ax.set_title(f"Spożycie wody - ostatnie {days} dni")
-        ax.set_ylim(bottom=min(intake) - 250)
-        ax.set_facecolor('#555555')
-        ax.legend()
-
-        ax.tick_params(axis='x', rotation=45)
-        fig.subplots_adjust(bottom=0.25)
-
-        canvas = FigureCanvasTkAgg(fig, master=self.chart_window)
-        canvas.draw()
-        canvas.get_tk_widget().pack()
-
-        canvas.get_tk_widget().configure(bg="#555555")
+        self.canvas.draw()
 
     def open_settings(self):
         """Otwiera okno ustawień, umożliwiające zmianę celu i rozmiaru szklanki."""
