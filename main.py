@@ -6,9 +6,9 @@ from tkinter import Button, PhotoImage, messagebox
 
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from setuptools_scm import get_version
 
 import logic
+from version import __version__
 
 
 class WaterTrackerApp:
@@ -131,7 +131,7 @@ class WaterTrackerApp:
             self.chart_canvas.protocol("WM_DELETE_WINDOW", self.chart_canvas.destroy)
 
             self.figure, self.ax = plt.subplots(figsize=(8, 4))
-            self.figure.patch.set_facecolor('#555555')  # Ustawienie tła całej figury
+            self.figure.patch.set_facecolor('#555555')
             self.canvas = FigureCanvasTkAgg(self.figure, master=self.chart_canvas)
             self.canvas.get_tk_widget().pack()
         else:
@@ -157,14 +157,14 @@ class WaterTrackerApp:
         self.ax.set_title(f"Spożycie wody - ostatnie {days} dni", color='white')
 
         self.ax.set_ylim(bottom=min(intake) - 250)
-        self.ax.set_facecolor('#555555')  # Tło samego wykresu
+        self.ax.set_facecolor('#555555')
 
-        self.ax.tick_params(axis='x', rotation=45, colors='white')  # Kolor wartości na osi X
-        self.ax.tick_params(axis='y', colors='white')  # Kolor wartości na osi Y
+        self.ax.tick_params(axis='x', rotation=45, colors='white')
+        self.ax.tick_params(axis='y', colors='white')
 
-        legend = self.ax.legend(facecolor='#777777', edgecolor='white')  # Tło legendy i ramka
+        legend = self.ax.legend(facecolor='#777777', edgecolor='white')
         for text in legend.get_texts():
-            text.set_color("white")  # Kolor tekstu w legendzie
+            text.set_color("white")
 
         self.figure.subplots_adjust(bottom=0.25)
         self.canvas.draw()
@@ -180,14 +180,14 @@ class WaterTrackerApp:
         tk.Label(settings_window, text="Cel (ml):", bg="#444444", fg="white").pack(pady=5)
         goal_slider = tk.Scale(settings_window, from_=100, to=5000, orient="horizontal",
                                length=200, sliderlength=20, bg="#444444", fg="white", resolution=50)
-        goal_slider.set(self.data["goal"])  # Ustawiamy wartość początkową
+        goal_slider.set(self.data["goal"])
         goal_slider.pack(pady=5)
 
         # Rozmiar szklanki (ml) z suwakiem
         tk.Label(settings_window, text="Rozmiar szklanki (ml):", bg="#444444", fg="white").pack(pady=5)
         glass_slider = tk.Scale(settings_window, from_=50, to=1000, orient="horizontal",
                                 length=200, sliderlength=20, bg="#444444", fg="white", resolution=25)
-        glass_slider.set(self.data["glass_size"])  # Ustawiamy wartość początkową
+        glass_slider.set(self.data["glass_size"])
         glass_slider.pack(pady=5)
 
         def save_settings():
@@ -207,7 +207,7 @@ class WaterTrackerApp:
         save_button = tk.Button(settings_window, text="Zapisz", command=save_settings, bg="#008CBA", fg="white")
         save_button.pack(pady=10)
 
-        version_label = tk.Label(settings_window, text=f"Wersja: {get_version()}", bg="#444444",
+        version_label = tk.Label(settings_window, text=f"Wersja: {__version__}", bg="#444444",
                                  fg="white")
         version_label.pack(pady=5)
 
