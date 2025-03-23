@@ -12,10 +12,17 @@ import logic
 
 
 class WaterTrackerApp:
-    """Główna klasa aplikacji śledzącej spożycie wody, zarządza UI i interakcjami użytkownika."""
+    """Główna klasa aplikacji śledzącej spożycie wody zarządza UI i interakcjami użytkownika."""
 
     def __init__(self):
         """Inicjalizuje aplikację, ładuje dane, tworzy okno i interfejs użytkownika."""
+        self.canvas = None
+        self.current_drop_image = None
+        self.drop_image_id = None
+        self.intake_label = None
+        self.buttons = None
+        self.drop_images = None
+        self.button_images = None
         self.chart_window = None
         self.output_path = Path(__file__).parent
         self.assets_path = self.output_path / "assets/"
@@ -115,16 +122,19 @@ class WaterTrackerApp:
 
     def create_chart_window(self, days):
         """Tworzy nowe okno wykresu i inicjalizuje Canvas."""
-        self.chart_canvas = tk.Toplevel(self.window)
-        self.chart_canvas.title("Historia spożycia wody")
-        self.chart_canvas.geometry("800x400")
-        self.chart_canvas.configure(bg="#555555")
+        if not self.chart_canvas:
+            self.chart_canvas = tk.Toplevel(self.window)
+            self.chart_canvas.title("Historia spożycia wody")
+            self.chart_canvas.geometry("800x400")
+            self.chart_canvas.configure(bg="#555555")
 
-        self.chart_canvas.protocol("WM_DELETE_WINDOW", self.chart_canvas.destroy)
+            self.chart_canvas.protocol("WM_DELETE_WINDOW", self.chart_canvas.destroy)
 
-        self.figure, self.ax = plt.subplots(figsize=(8, 4))
-        self.canvas = FigureCanvasTkAgg(self.figure, master=self.chart_canvas)
-        self.canvas.get_tk_widget().pack()
+            self.figure, self.ax = plt.subplots(figsize=(8, 4))
+            self.canvas = FigureCanvasTkAgg(self.figure, master=self.chart_canvas)
+            self.canvas.get_tk_widget().pack()
+        else:
+            self.chart_canvas.focus()
 
         self.update_chart(days)
 
