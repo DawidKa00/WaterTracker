@@ -1,4 +1,5 @@
 import os
+import sys
 import tkinter as tk
 from pathlib import Path
 from tkinter import Canvas, Button, PhotoImage, messagebox
@@ -26,6 +27,8 @@ class WaterTrackerApp:
         self.window.title("Tracker Wody")
         self.window.iconbitmap(os.path.join(self.assets_path, "droplet.ico"))
         self.window.resizable(False, False)
+
+        self.window.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.canvas = Canvas(
             self.window, bg="#555555", height=525, width=372,
@@ -124,6 +127,8 @@ class WaterTrackerApp:
         self.chart_window.geometry("800x400")
         self.chart_window.configure(bg="#555555")
 
+        self.chart_window.protocol("WM_DELETE_WINDOW", self.chart_window.destroy())
+
         fig, ax = plt.subplots(figsize=(8, 4))
 
         ax.bar(dates, intake, color='#007aff', label="Spożycie wody")
@@ -179,6 +184,9 @@ class WaterTrackerApp:
         save_button = tk.Button(settings_window, text="Zapisz", command=save_settings, bg="#008CBA", fg="white")
         save_button.pack(pady=10)
 
+    def on_closing(self):
+        self.window.destroy()
+        sys.exit()
 
 if __name__ == "__main__":
     WaterTrackerApp()
