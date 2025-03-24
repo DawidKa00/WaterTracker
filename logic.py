@@ -8,23 +8,15 @@ DATA_FILE = "water_data.json"
 def load_data(days=None):
     """Wczytuje dane z pliku JSON i zwraca określoną liczbę dni."""
     data = _read_json_file()
-
     today = datetime.today().strftime('%Y-%m-%d')
 
     if not data or data[-1].get("date") != today:
-        last_entry = data[-1] if data else {}
-        latest_entry = {
-            "date": today,
-            "intake": 0,
-            "goal": last_entry.get("goal", 2000),
-            "glass_size": last_entry.get("glass_size", 250)
-        }
+        last_entry = data[-1] if data else {"goal": 2000, "glass_size": 250}
+        latest_entry = {**last_entry, "date": today, "intake": 0}
         data.append(latest_entry)
         save_data(data)
-    else:
-        latest_entry = data[-1]
 
-    return data[-days:] if days else latest_entry
+    return data[-days:] if days else data[-1]
 
 
 def save_data(data):
