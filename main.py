@@ -2,12 +2,14 @@ import os
 import sys
 import tkinter as tk
 from pathlib import Path
+from threading import Thread
 from tkinter import Button, PhotoImage, messagebox
 
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import logic
+from drink_detect import WaterDrinkingDetector  # Importowanie klasy detektora
 from version import __version__
 
 
@@ -33,6 +35,8 @@ class WaterTrackerApp:
         self.create_widgets()
         self.update_ui()
         self._bind_keys()
+
+        self.water_detector = None
 
         self.window.mainloop()
 
@@ -60,7 +64,7 @@ class WaterTrackerApp:
 
     def load_assets(self):
         """Ładuje obrazy przycisków i wskaźników postępu."""
-        self.button_images = [PhotoImage(file=self.relative_to_assets(f"button_{i + 1}.png")) for i in range(4)]
+        self.button_images = [PhotoImage(file=self.relative_to_assets(f"button_{i + 1}.png")) for i in range(5)]
         self.drop_images = [PhotoImage(file=self.relative_to_assets(f"image_{i}.png")) for i in range(10)]
 
     def create_widgets(self):
@@ -68,8 +72,9 @@ class WaterTrackerApp:
         button_config = [
             (self.open_settings, 324, 0, 48, 48),
             (self.add_water, 251, 340, 66, 66),
-            (self.remove_water, 52, 338, 66, 66),
+            (self.remove_water, 52, 340, 66, 66),
             (lambda: self.create_chart_window(7), 0, 0, 48, 48),
+            (self.toggle_water_detection, 150, 340, 66, 66),  # Dodajemy przycisk do uruchomienia detekcji
         ]
         self.buttons = [
             Button(image=self.button_images[i], borderwidth=0, highlightthickness=0, command=config[0], relief="flat")
@@ -89,9 +94,9 @@ class WaterTrackerApp:
         if self.chart_canvas:
             self.update_chart()
 
-    def add_water(self):
+    def add_water(self, sip=False):
         """Dodaje wodę do dziennego spożycia i odświeża interfejs."""
-        logic.add_water(self.data)
+        logic.add_water(self.data, sip)
         self.update_ui()
 
     def remove_water(self):
@@ -153,17 +158,17 @@ class WaterTrackerApp:
 
         def save_settings():
             """Zapisuje nowe ustawienia celu i rozmiaru szklanki."""
-            new_goal, new_glass_size = goal_slider.get(), glass_slider.get()
-            if new_goal <= 0 or new_glass_size <= 0:
+            new_goal, new_glass_size, new_sip_size = goal_slider.get(), glass_slider.get(), sip_slider.get()
+            if new_goal <= 0 or new_glass_size <= 0 or new_sip_size <= 0:
                 messagebox.showerror("Błąd", "Wartości muszą być większe niż 0!")
             else:
-                logic.update_settings(self.data, new_goal, new_glass_size)
+                logic.update_settings(self.data, new_goal, new_glass_size, new_sip_size)
                 self.update_ui()
                 settings_window.destroy()
 
         settings_window = tk.Toplevel(self.window)
         settings_window.title("Ustawienia")
-        settings_window.geometry("250x250")
+        settings_window.geometry("250x330")
         settings_window.configure(bg="#444444")
 
         tk.Label(settings_window, text="Cel (ml):", bg="#444444", fg="white").pack(pady=5)
@@ -178,10 +183,32 @@ class WaterTrackerApp:
         glass_slider.set(self.data["glass_size"])
         glass_slider.pack(pady=5)
 
+        tk.Label(settings_window, text="Rozmiar sip (ml):", bg="#444444", fg="white").pack(pady=5)
+        sip_slider = tk.Scale(settings_window, from_=25, to=250, orient="horizontal", length=200, bg="#444444",
+                              fg="white", resolution=12.50, digits=4)
+        sip_slider.set(self.data["sip_size"])
+        sip_slider.pack(pady=5)
+
         tk.Button(settings_window, text="Zapisz", command=save_settings, bg="#008CBA", fg="white").pack(pady=10)
         tk.Label(settings_window, text=f"Wersja: {__version__}", bg="#444444", fg="white").pack(pady=5)
 
+    def toggle_water_detection(self):
+        """Uruchamia lub zatrzymuje detekcję picia wody."""
+        if self.water_detector is None:
+            self.water_detector = WaterDrinkingDetector(self, detection_interval=10, sound_file="assets/beep.mp3",
+                                                        show_window=False)
+            thread = Thread(target=self.water_detector.start_detection)
+            thread.daemon = True
+            thread.start()
+            messagebox.showinfo("Detekcja uruchomiona", "Detekcja picia wody została uruchomiona.")
+        else:
+            self.water_detector.stop_detection()
+            self.water_detector = None
+            messagebox.showinfo("Detekcja zatrzymana", "Detekcja picia wody została zatrzymana.")
+
     def on_closing(self):
+        if self.water_detector:
+            self.water_detector.stop_detection()
         self.window.destroy()
         sys.exit()
 

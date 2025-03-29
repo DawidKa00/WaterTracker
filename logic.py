@@ -11,7 +11,7 @@ def load_data(days=None):
     today = datetime.today().strftime('%Y-%m-%d')
 
     if not data or data[-1].get("date") != today:
-        last_entry = data[-1] if data else {"goal": 2000, "glass_size": 250}
+        last_entry = data[-1] if data else {"goal": 2000, "glass_size": 250, "sip_size": 62.5}
         latest_entry = {**last_entry, "date": today, "intake": 0}
         data.append(latest_entry)
         save_data(data)
@@ -25,9 +25,10 @@ def save_data(data):
         json.dump(data, file, indent=4)
 
 
-def add_water(data):
+def add_water(data, sip):
     """Dodaje wodę i zapisuje zmiany."""
-    _update_daily_data(data, "intake", data["intake"] + data["glass_size"])
+    increment = data["sip_size"] if sip else data["glass_size"]
+    _update_daily_data(data, "intake", data["intake"] + increment)
 
 
 def remove_water(data):
@@ -35,9 +36,9 @@ def remove_water(data):
     _update_daily_data(data, "intake", max(0, data["intake"] - data["glass_size"]))
 
 
-def update_settings(data, goal, glass_size):
+def update_settings(data, goal, glass_size, sip_size):
     """Aktualizuje ustawienia i zapisuje zmiany."""
-    data["goal"], data["glass_size"] = goal, glass_size
+    data["goal"], data["glass_size"], data['sip_size'] = goal, glass_size, sip_size
     save_data(update_data_list(data))
 
 
