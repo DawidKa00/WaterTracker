@@ -1,15 +1,24 @@
+import os
+import sys
 import time
 
 import cv2
 import mediapipe as mp
 import numpy as np
-import pygame
+from pygame import mixer
 
 
 class WaterDrinkingDetector:
     def __init__(self, water_tracker_app=None, detection_interval=3, sound_file="assets/beep.mp3", show_window=True):
-        pygame.mixer.init()
-        self.ping_sound = pygame.mixer.Sound(sound_file)
+        mixer.init()
+
+        if hasattr(sys, '_MEIPASS'):
+            self.assets_path = os.path.join(sys._MEIPASS, "assets")
+        else:
+            self.assets_path = os.path.join(os.getcwd(), 'assets')
+
+        self.ping_sound = os.path.join(self.assets_path, 'beep.mp3')
+        mixer.music.load(self.ping_sound)
 
         self.mp_hands = mp.solutions.hands
         self.mp_pose = mp.solutions.pose
@@ -54,7 +63,7 @@ class WaterDrinkingDetector:
                 distance = np.linalg.norm([mouth_x - index_finger_x, mouth_y - index_finger_y])
                 if distance < 50:  # Próg wykrywania picia
                     if time.time() - self.last_notification_time > self.detection_interval:
-                        pygame.mixer.Sound.play(self.ping_sound)
+                        mixer.music.play()
                         self.last_notification_time = time.time()
                         if self.water_tracker_app is not None:
                             self.water_tracker_app.add_water(sip=True)
