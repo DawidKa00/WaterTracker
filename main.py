@@ -195,8 +195,7 @@ class WaterTrackerApp:
     def toggle_water_detection(self):
         """Uruchamia lub zatrzymuje detekcję picia wody."""
         if self.water_detector is None:
-            self.water_detector = WaterDrinkingDetector(self, detection_interval=10, sound_file="assets/beep.mp3",
-                                                        show_window=False)
+            self.water_detector = WaterDrinkingDetector(self, detection_interval=10, show_window=False)
             thread = Thread(target=self.water_detector.start_detection)
             thread.daemon = True
             thread.start()

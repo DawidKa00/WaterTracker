@@ -1,5 +1,5 @@
 @echo off
-set VENV_DIR=%~dp0.venv1
+set VENV_DIR=%~dp0.venv2
 
 :: Sprawdzenie, czy już jesteśmy w virtualenv
 if not defined VIRTUAL_ENV (
